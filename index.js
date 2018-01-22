@@ -94,6 +94,14 @@ io.on('connection', function(socket) {
             }
         }
 
+        if (allGood == true && keys.length > 1) {
+            for (let i = 0; i < keys.length; i++) {
+                const element = allClients[keys[i]]
+                element.face = 'alive'
+                element.act = ''
+            }   
+        }
+
         io.emit('login', playerList())
 
         if (allGood == true && keys.length > 1) {
