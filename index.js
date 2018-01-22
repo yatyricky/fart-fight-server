@@ -107,9 +107,13 @@ io.on('connection', function(socket) {
                 for (let i = 0; i < keys.length; i++) {
                     const element = allClients[keys[i]];
                     if (element.act == 'shock') {
+                        element.power -= 1
                         shocks.push(keys[i]);
                     } else if (element.act == 'nuke') {
+                        element.power -= 5
                         nukes.push(keys[i]);
+                    } else if (element.act == 'charge') {
+                        element.power += 1
                     }
                     if (element.power > 3) {
                         element.face = 'evil'
@@ -194,13 +198,11 @@ io.on('connection', function(socket) {
 
     socket.on('charge', (data) => {
         const player = allClients[data.name]
-        player.power += 1
         player.act = 'charge'
     })
 
     socket.on('shock', (data) => {
         const player = allClients[data.name]
-        player.power -= 1
         player.act = 'shock'
     })
 
@@ -211,7 +213,6 @@ io.on('connection', function(socket) {
 
     socket.on('nuke', (data) => {
         const player = allClients[data.name]
-        player.power -= 5
         player.act = 'nuke'
     })
 });
