@@ -49,10 +49,16 @@ class Looper {
 
     stop() {
         clearInterval(this.intvObj)
+        const keys = Object.keys(allClients)
+        for (let i = 0; i < keys.length; i++) {
+            const element = allClients[keys[i]]
+            element.status = 'wait'
+        }
     }
 }
 
 let loop = new Looper()
+let gameRunning = false
 
 io.on('connection', function(socket) {
     console.log('New client connected: ' + socket.id);
@@ -73,9 +79,9 @@ io.on('connection', function(socket) {
             socketId: socket.id,
             power: 0,
             act: '',
-            face: 'alive',
+            face: 'alive', // alive, evil, died
             score: 0,
-            status: 'wait'
+            status: 'wait' // wait, ready, game
         }
 
         io.emit('login', playerList());
@@ -89,7 +95,7 @@ io.on('connection', function(socket) {
         let allGood = true
         for (let i = 0; i < keys.length && allGood == true; i++) {
             const element = allClients[keys[i]]
-            if (element.status == 'wait') {
+            if (element.status != 'ready') {
                 allGood = false
             }
         }
@@ -99,12 +105,12 @@ io.on('connection', function(socket) {
                 const element = allClients[keys[i]]
                 element.face = 'alive'
                 element.act = ''
-            }   
+            }
         }
-
         io.emit('login', playerList())
 
-        if (allGood == true && keys.length > 1) {
+        if (allGood == true && keys.length > 1 && gameRunning == false) {
+            gameRunning = true
             console.log('about to start');
             
             loop.start(() => {
@@ -112,31 +118,34 @@ io.on('connection', function(socket) {
                 // result
                 const nukes = [];
                 const shocks = [];
-                for (let i = 0; i < keys.length; i++) {
-                    const element = allClients[keys[i]];
+                const lkeys = Object.keys(allClients)
+                for (let i = 0; i < lkeys.length; i++) {
+                    const element = allClients[lkeys[i]];
                     if (element.act == 'shock') {
                         element.power -= 1
-                        shocks.push(keys[i]);
+                        shocks.push(lkeys[i]);
                     } else if (element.act == 'nuke') {
                         element.power -= 5
-                        nukes.push(keys[i]);
+                        nukes.push(lkeys[i]);
                     } else if (element.act == 'charge') {
                         element.power += 1
+                    } else {
+                        element.act = 'block'
                     }
                     if (element.power > 3) {
                         element.face = 'evil'
                     }
                 }
                 if (nukes.length > 0) {
-                    for (let i = 0; i < keys.length; i++) {
-                        const element = allClients[keys[i]];
+                    for (let i = 0; i < lkeys.length; i++) {
+                        const element = allClients[lkeys[i]];
                         if (element.act != 'nuke') {
                             element.face = 'died'
                         }
                     }
                 } else if (shocks.length > 0) {
-                    for (let i = 0; i < keys.length; i++) {
-                        const element = allClients[keys[i]];
+                    for (let i = 0; i < lkeys.length; i++) {
+                        const element = allClients[lkeys[i]];
                         if (element.act == 'charge') {
                             element.face = 'died'
                         }
@@ -147,20 +156,21 @@ io.on('connection', function(socket) {
 
                 const deads = [];
                 let winner = null;
-                for (let i = 0; i < keys.length; i++) {
-                    const element = allClients[keys[i]];
-                    if (element.face == 'died') {
-                        deads.push(keys[i])
+                for (let i = 0; i < lkeys.length; i++) {
+                    const element = allClients[lkeys[i]];
+                    if (element.face == 'died' || element.status != 'game') {
+                        deads.push(lkeys[i])
                     } else {
-                        winner = keys[i]
+                        winner = lkeys[i]
                     }
                 }
-                if (keys.length - deads.length == 1) {
+                if (lkeys.length - deads.length == 1) {
                     loop.stop()
+                    gameRunning = false
                     allClients[winner].score += 1
 
-                    for (let i = 0; i < keys.length; i++) {
-                        const element = allClients[keys[i]];
+                    for (let i = 0; i < lkeys.length; i++) {
+                        const element = allClients[lkeys[i]];
                         element.power = 0
                         element.status = 'wait'
                     }
@@ -169,12 +179,18 @@ io.on('connection', function(socket) {
                     io.emit('game start', {loop: true});
                     console.log('[E] game start');
     
-                    for (let i = 0; i < keys.length; i++) {
-                        const element = allClients[keys[i]];
+                    for (let i = 0; i < lkeys.length; i++) {
+                        const element = allClients[lkeys[i]];
                         element.act = 'block'
                     }
                 }
             });
+            let tkeys = Object.keys(allClients)
+            for (let i = 0; i < tkeys.length; i++) {
+                const element = allClients[tkeys[i]]
+                element.status = 'game'
+            }
+            io.emit('login', playerList())
             io.emit('game start', {loop: false});
             console.log('[E] game start');
         }
@@ -200,6 +216,7 @@ io.on('connection', function(socket) {
         }
         io.emit('login', playerList())
         if (Object.keys(allClients).length < 2) {
+            gameRunning = false
             loop.stop()
         }
     })
