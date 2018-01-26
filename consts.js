@@ -1,22 +1,22 @@
 const PlayerState = {
-    WAIT: 100,
-    READY: 200,
-    GAME: 300,
-    DIED: 400
+    WAIT: 'wait',
+    READY: 'ready',
+    GAME: 'game',
+    DIED: 'died'
 };
 
 const PlayerAction = {
-    NONE: 10,
-    CHARGE: 100,
-    SHOCK: 200,
-    BLOCK: 300,
-    NUKE: 400
+    NONE: 'none',
+    CHARGE: 'charge',
+    SHOCK: 'shock',
+    BLOCK: 'block',
+    NUKE: 'nuke'
 };
 
 const PlayerFace = {
-    SMILE: 100,
-    EVIL: 200,
-    DIED: 300
+    SMILE: 'smile',
+    EVIL: 'evil',
+    DIED: 'died'
 };
 
 module.exports = {

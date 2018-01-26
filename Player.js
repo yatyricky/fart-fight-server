@@ -12,11 +12,12 @@ class Player {
             nameKeeper[name] = 0;
         }
         this.name = name;
-        this.power = 0;
+        this.power = 1;
         this.act = PlayerAction.NONE;
         this.score = 0;
         this.state = PlayerState.WAIT;
         this.socketId = socketId;
+        this.room = null;
     }
 
     getFace() {
@@ -27,6 +28,14 @@ class Player {
             return PlayerFace.EVIL;
         }
         return PlayerFace.SMILE;
+    }
+
+    setRoom(room) {
+        this.room = room;
+    }
+
+    getRoom() {
+        return this.room;
     }
 
     getSocketId() {

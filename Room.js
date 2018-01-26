@@ -17,8 +17,13 @@ class Room {
         return this.guid;
     }
 
+    numPlayers() {
+        return this.players.length;
+    }
+
     playerJoin(player) {
         this.players.push(player);
+        player.setRoom(this);
     }
 
     playerLeave(player) {

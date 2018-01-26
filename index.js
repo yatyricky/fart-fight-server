@@ -17,33 +17,63 @@ const Player = require('./Player');
 const Room = require('./Room');
 
 const allClients = {};
-const room = new Room(io); // for test purpose
+const allRooms = {};
 
 io.on('connection', function(socket) {
     console.log('[I]New client connected: ' + socket.id);
 
-    socket.on('login', (data) => {
+    socket.on('login', data => {
         console.log(`[I]login: ${JSON.stringify(data)}`);
+
+        // player setups
         const player = new Player(data.name, socket.id);
         allClients[player.getName()] = player;
-        if (room.canPlayerJoin()) {
-            socket.join(room.getId());
-            room.playerJoin(player);
-            io.to(room.getId()).emit('update players', room.getPlayersData());
-            socket.emit('login result', 'success');
+        socket.emit('correct name', player.getName());
+        console.log(`[I]>>player: ${data.name} should change name, new name: ${player.getName()}`);
+
+        // room setups
+        let room = null;
+        if (data.roomId == "") {
+            room = new Room(io);
+            allRooms[room.getId()] = room;
         } else {
-            socket.emit('login result', 'room is full');
+            if (allRooms.hasOwnProperty(data.roomId)) {
+                room = allRooms[data.roomId];
+            }
         }
-        if (player.getName() != data.name) {
-            console.log(`[I]player should change name, new name: ${player.getName()}`);
-            socket.emit('correct name', player.getName());
+
+        if (room != null) {
+            if (room.canPlayerJoin()) {
+                socket.join(room.getId());
+                room.playerJoin(player);
+                io.to(room.getId()).emit('update players', room.getPlayersData());
+                console.log(`[I]>>>>update players`);
+                socket.emit('login result', {
+                    res: 'success',
+                    roomId: room.getId()
+                });
+                console.log(`[I]>>Login successful, player ${player.getData().name} joined room ${room.getId()}`);
+            } else {
+                socket.emit('login result', {
+                    res: 'fail',
+                    reason: 'room is full'
+                });
+                console.log(`[I]>>Login failed, room is full`);
+            }
+        } else {
+            socket.emit('login result', {
+                res: 'fail',
+                reason: 'no such room'
+            });
+            console.log(`[I]>>Login failed, no such room ${data.roomId} or new Room failed`);
         }
     });
 
     socket.on('ready', data => {
+        console.log(`[I]player ${data} request ready`);
         if (allClients.hasOwnProperty(data)) {
             const player = allClients[data];
-            room.playerReady(player);
+            player.getRoom().playerReady(player);
         } else {
             console.error(`[E]ready player doesnt exist, player name = ${data}`);
         }
@@ -53,24 +83,33 @@ io.on('connection', function(socket) {
         console.log(`[I]Client disconnected: ${socket.id}, reason: ${JSON.stringify(reason)}`);
         const keys = Object.keys(allClients);
         let removed = 0;
-        let removeName = "";
+        let removedPlayer = null;
+        let room = null;
         for (let i = 0; i < keys.length; i++) {
             const element = allClients[keys[i]];
             if (element.getSocketId() == socket.id) {
-                room.playerLeave(element);
+                room = element.getRoom();
+                if (room != null) {
+                    room.playerLeave(element);
+                    if (room.numPlayers() == 0) {
+                        delete allRooms[room.getId()];
+                    }
+                }
                 removed += 1;
-                removeName = keys[i];
+                removedPlayer = element;
                 delete allClients[keys[i]];
             }
         }
         if (removed != 1) {
-            console.error('Removing client error');
+            console.error(`[W]socket disconnected but no players removed, removed = ${removed}`);
         } else {
-            console.log(`player ${removeName} logged off successfully`);
+            console.log(`player ${removedPlayer.getData().name} logged off successfully`);
         }
-        io.to(room.getId()).emit('update players', room.getPlayersData());
-        if (Object.keys(allClients).length < 2) {
-            room.stopGame();
+        if (room != null) {
+            io.to(room.getId()).emit('update players', room.getPlayersData());
+            if (Object.keys(allClients).length < 2) {
+                room.stopGame();
+            }
         }
     })
 
