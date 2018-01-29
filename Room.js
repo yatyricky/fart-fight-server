@@ -111,10 +111,14 @@ class Room {
 
                 for (let i = 0; i < this.players.length; i++) {
                     const element = this.players[i];
-                    element.modPower(0 - element.getData().power);
+                    element.modPower(1 - element.getData().power);
                 }
+
+                this.io.to(this.guid).emit('game end', this.getPlayersScore());
+                console.log(`[I]>>>>game end`);
             } else {
                 this.io.to(this.guid).emit('run timer');
+                console.log(`[I]>>>>run timer`);
             }
             this.io.to(this.guid).emit('update players', this.getPlayersData());
             for (let i = 0; i < this.players.length; i++) {
@@ -143,6 +147,18 @@ class Room {
         for (let i = 0; i < this.players.length; i++) {
             const element = this.players[i];
             ret.push(element.getData());
+        }
+        return ret;
+    }
+
+    getPlayersScore() {
+        const ret = [];
+        for (let i = 0; i < this.players.length; i++) {
+            const data = this.players[i].getData();
+            ret.push({
+                name: data.name,
+                score: data.score
+            });
         }
         return ret;
     }
