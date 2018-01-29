@@ -19,7 +19,7 @@ const Room = require('./Room');
 const allClients = {};
 const allRooms = {};
 
-io.on('connection', function(socket) {
+io.on('connection', socket => {
     console.log('[I]New client connected: ' + socket.id);
 
     socket.on('login', data => {
@@ -79,6 +79,26 @@ io.on('connection', function(socket) {
         }
     });
 
+    const playerLeaveRoom = player => {
+        const name = player.getName();
+        const room = player.getRoom();
+        if (room != null) {
+            room.playerLeave(player);
+            if (room.numPlayers() == 0) {
+                delete allRooms[room.getId()];
+            } else {
+                io.to(room.getId()).emit('update players', room.getPlayersData());
+                if (room.numPlayers() == 1) {
+                    room.stopGame();
+                }
+            }
+            console.log(`[I]player ${name} left room successfully`);
+        } else {
+            console.error(`[W]player ${name} trying to leave but no room joined`);
+        }
+        delete allClients[name];
+    };
+
     socket.on('disconnect', (reason) => {
         console.log(`[I]Client disconnected: ${socket.id}, reason: ${JSON.stringify(reason)}`);
         const keys = Object.keys(allClients);
@@ -88,43 +108,39 @@ io.on('connection', function(socket) {
         for (let i = 0; i < keys.length; i++) {
             const element = allClients[keys[i]];
             if (element.getSocketId() == socket.id) {
-                room = element.getRoom();
-                if (room != null) {
-                    room.playerLeave(element);
-                    if (room.numPlayers() == 0) {
-                        delete allRooms[room.getId()];
-                    }
-                }
-                removed += 1;
+                playerLeaveRoom(element);
+                removed ++;
                 removedPlayer = element;
-                delete allClients[keys[i]];
             }
         }
         if (removed != 1) {
             console.error(`[W]socket disconnected but no players removed, removed = ${removed}`);
         } else {
-            console.log(`player ${removedPlayer.getData().name} logged off successfully`);
+            console.log(`[I]player ${removedPlayer.getName()} logged off successfully`);
         }
-        if (room != null) {
-            io.to(room.getId()).emit('update players', room.getPlayersData());
-            if (Object.keys(allClients).length < 2) {
-                room.stopGame();
-            }
+    });
+
+    socket.on('leave', data => {
+        console.log(`[I]player request leave: ${data}`);
+        if (allClients.hasOwnProperty(data)) {
+            playerLeaveRoom(allClients[data]);
+        } else {
+            console.error(`[W]leave player doesnt exist, player name = ${data}`);
         }
-    })
+    });
 
     socket.on('charge', data => {
-        console.log(`[O]charge: ${data}`);
+        console.log(`[I]charge: ${data}`);
         if (allClients.hasOwnProperty(data)) {
             const player = allClients[data];
             player.setAct(PlayerAction.CHARGE);
         } else {
             console.error(`[E]ready player doesnt exist, player name = ${data}`);
         }
-    })
+    });
 
     socket.on('shock', data => {
-        console.log(`[O]shock: ${data}`);
+        console.log(`[I]shock: ${data}`);
         if (allClients.hasOwnProperty(data)) {
             const player = allClients[data];
             if (player.getData().power >= config.SHOCK_COST) {
@@ -135,20 +151,20 @@ io.on('connection', function(socket) {
         } else {
             console.error(`[E]ready player doesnt exist, player name = ${data}`);
         }
-    })
+    });
 
     socket.on('block', data => {
-        console.log(`[O]block: ${data}`);
+        console.log(`[I]block: ${data}`);
         if (allClients.hasOwnProperty(data)) {
             const player = allClients[data];
             player.setAct(PlayerAction.BLOCK);
         } else {
             console.error(`[E]ready player doesnt exist, player name = ${data}`);
         }
-    })
+    });
 
     socket.on('nuke', data => {
-        console.log(`[O]nuke: ${data}`);
+        console.log(`[I]nuke: ${data}`);
         if (allClients.hasOwnProperty(data)) {
             const player = allClients[data];
             if (player.getData().power >= config.NUKE_COST) {
@@ -159,5 +175,5 @@ io.on('connection', function(socket) {
         } else {
             console.error(`[E]ready player doesnt exist, player name = ${data}`);
         }
-    })
+    });
 });
