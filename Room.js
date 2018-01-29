@@ -51,6 +51,7 @@ class Room {
             for (let i = 0; i < this.players.length; i++) {
                 const element = this.players[i];
                 element.setState(PlayerState.GAME);
+                element.setAct(PlayerAction.NONE);
             }
             this.startGame();
         }
@@ -121,10 +122,6 @@ class Room {
                 console.log(`[I]>>>>run timer`);
             }
             this.io.to(this.guid).emit('update players', this.getPlayersData());
-            for (let i = 0; i < this.players.length; i++) {
-                const element = this.players[i];
-                element.setAct(PlayerAction.BLOCK);
-            }
         }, config.INTERVAL);
         this.io.to(this.guid).emit('run timer');
     }
@@ -132,10 +129,15 @@ class Room {
     stopGame() {
         this.running = false;
         clearInterval(this.intvObj);
-        for (let i = 0; i < this.players.length; i++) {
-            const element = this.players[i];
-            element.setState(PlayerState.WAIT);
-        }
+        // for (let i = 0; i < this.players.length; i++) {
+        //     const element = this.players[i];
+        //     element.setState(PlayerState.WAIT);
+        // }
+    }
+
+    playerCloseResult(player) {
+        player.setState(PlayerState.WAIT);
+        this.io.to(this.guid).emit('update players', this.getPlayersData());
     }
 
     canPlayerJoin() {

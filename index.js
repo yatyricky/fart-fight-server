@@ -129,6 +129,20 @@ io.on('connection', socket => {
         }
     });
 
+    socket.on('close result', data => {
+        console.log(`[I]player closed result panel: ${data}`);
+        if (allClients.hasOwnProperty(data)) {
+            const room = allClients[data].getRoom();
+            if (room != null) {
+                room.playerCloseResult(allClients[data]);
+            } else {
+                console.error(`[W]close res player has no room, player name = ${data}`);
+            }
+        } else {
+            console.error(`[W]close res player doesnt exist, player name = ${data}`);
+        }
+    });
+
     socket.on('charge', data => {
         console.log(`[I]charge: ${data}`);
         if (allClients.hasOwnProperty(data)) {
