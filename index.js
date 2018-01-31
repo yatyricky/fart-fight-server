@@ -4,9 +4,7 @@ const Player = require('./Player');
 const Room = require('./Room');
 
 const io = require('socket.io')(config.PORT, {
-    transports: ['websocket'],
-    pingInterval: 10000,
-    pingTimeout: 5000,
+    transports: ['websocket']
 });
 console.log(`--- server running on ${config.PORT} ---`);
 
@@ -88,7 +86,7 @@ io.on('connection', socket => {
             } else {
                 io.to(room.getId()).emit(IOTypes.E_UPDATE_PLAYERS, {data: room.getPlayersData()});
                 if (room.numPlayers() == 1) {
-                    room.stopGame();
+                    room.stopGame(null);
                 }
             }
             console.log(`[I]player ${name} left room successfully`);

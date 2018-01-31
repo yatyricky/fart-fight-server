@@ -107,32 +107,40 @@ class Room {
                 }
             }
             if (winners.length == 1) {
-                this.stopGame();
-                winners[0].modScore(1);
-
-                for (let i = 0; i < this.players.length; i++) {
-                    const element = this.players[i];
-                    element.modPower(1 - element.getData().power);
-                }
-
-                this.io.to(this.guid).emit(IOTypes.E_GAME_END, {data: this.getPlayersScore()});
-                console.log(`[I]>>>>game end`);
+                this.stopGame(winners[0]);
             } else {
                 this.io.to(this.guid).emit(IOTypes.E_RUN_TIMER);
                 console.log(`[I]>>>>run timer`);
             }
             this.io.to(this.guid).emit(IOTypes.E_UPDATE_PLAYERS, {data: this.getPlayersData()});
+            if (winners.length != 1) {
+                for (let i = 0; i < this.players.length; i++) {
+                    const element = this.players[i];
+                    element.setAct(PlayerAction.BLOCK);
+                }
+            }
         }, config.INTERVAL);
         this.io.to(this.guid).emit(IOTypes.E_RUN_TIMER);
     }
 
-    stopGame() {
+    stopGame(winner) {
         this.running = false;
         clearInterval(this.intvObj);
-        // for (let i = 0; i < this.players.length; i++) {
-        //     const element = this.players[i];
-        //     element.setState(PlayerState.WAIT);
-        // }
+
+        if (winner == null) {
+            if (this.players.length > 0) {
+                winner = this.players[0];
+            }
+        }
+        if (winner != null) {
+            winner.modScore(1);
+        }
+        for (let i = 0; i < this.players.length; i++) {
+            const element = this.players[i];
+            element.modPower(1 - element.getData().power);
+        }
+        this.io.to(this.guid).emit(IOTypes.E_GAME_END, {data: this.getPlayersScore()});
+        console.log(`[I]>>>>game end`);
     }
 
     playerCloseResult(player) {
