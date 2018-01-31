@@ -1,5 +1,5 @@
 const config = require('./config');
-const {PlayerState, PlayerAction, PlayerFace} = require('./consts');
+const {PlayerState, PlayerAction, PlayerFace, IOTypes} = require('./consts');
 
 let guid = 100;
 
@@ -55,7 +55,7 @@ class Room {
             }
             this.startGame();
         }
-        this.io.to(this.guid).emit('update players', this.getPlayersData());
+        this.io.to(this.guid).emit(IOTypes.E_UPDATE_PLAYERS, {data: this.getPlayersData()});
     }
 
     startGame() {
@@ -115,15 +115,15 @@ class Room {
                     element.modPower(1 - element.getData().power);
                 }
 
-                this.io.to(this.guid).emit('game end', this.getPlayersScore());
+                this.io.to(this.guid).emit(IOTypes.E_GAME_END, {data: this.getPlayersScore()});
                 console.log(`[I]>>>>game end`);
             } else {
-                this.io.to(this.guid).emit('run timer');
+                this.io.to(this.guid).emit(IOTypes.E_RUN_TIMER);
                 console.log(`[I]>>>>run timer`);
             }
-            this.io.to(this.guid).emit('update players', this.getPlayersData());
+            this.io.to(this.guid).emit(IOTypes.E_UPDATE_PLAYERS, {data: this.getPlayersData()});
         }, config.INTERVAL);
-        this.io.to(this.guid).emit('run timer');
+        this.io.to(this.guid).emit(IOTypes.E_RUN_TIMER);
     }
 
     stopGame() {
@@ -137,7 +137,7 @@ class Room {
 
     playerCloseResult(player) {
         player.setState(PlayerState.WAIT);
-        this.io.to(this.guid).emit('update players', this.getPlayersData());
+        this.io.to(this.guid).emit(IOTypes.E_UPDATE_PLAYERS, {data: this.getPlayersData()});
     }
 
     canPlayerJoin() {
