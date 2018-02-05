@@ -30,16 +30,22 @@ const IOTypes = {
     R_NUKE: "nuke",
 
     E_LINK_ESTABLISHED: "link established",
-    E_CORRECT_NAME: "correct name",
     E_UPDATE_PLAYERS: "update players",
     E_LOGIN_RESULT: "login result",
     E_RUN_TIMER: "run timer",
     E_GAME_END: "game end",
 };
 
+const LoginMethod = {
+    DEVICE: "dvc",
+    GOOGLE_GAMES: "gpg",
+    FACEBOOK: "fb"
+}
+
 module.exports = {
     PlayerState,
     PlayerAction,
     PlayerFace,
-    IOTypes
+    IOTypes,
+    LoginMethod
 };

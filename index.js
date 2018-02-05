@@ -8,25 +8,22 @@ const io = require('socket.io')(config.PORT, {
 });
 console.log(`--- server running on ${config.PORT} ---`);
 
-const allClients = {};
 const allRooms = {};
 
 io.on('connection', socket => {
-    console.log(`[I]New client connected: ${socket.id}`);
+    console.log(`[I]<<New client connected: ${socket.id}`);
+    socket.loginMethod = "";
+    socket.pid = "";
 
     socket.emit(IOTypes.E_LINK_ESTABLISHED);
-    console.log(`[I]>>${IOTypes.E_LINK_ESTABLISHED}`);
+    console.log(`[I]>>Link established`);
 
     socket.on(IOTypes.R_LOGIN, data => {
-        console.log(`[I]login: ${JSON.stringify(data)}`);
-
+        console.log(`[I]<<login: ${JSON.stringify(data)}`);
+        socket.loginMethod = data.method;
+        socket.pid = data.pid;
         // player setups
-        const player = new Player(data.name, socket.id);
-        allClients[player.getName()] = player;
-        socket.emit(IOTypes.E_CORRECT_NAME, {
-            data: player.getName()
-        });
-        console.log(`[I]>>player: ${data.name} should change name, new name: ${player.getName()}`);
+        const player = new Player(data.method, data.pid, data.name);
 
         // room setups
         let room = null;
@@ -67,19 +64,20 @@ io.on('connection', socket => {
     });
 
     socket.on(IOTypes.R_READY, data => {
-        console.log(`[I]player ${data.name} request ready`);
-        if (allClients.hasOwnProperty(data.name)) {
-            const player = allClients[data.name];
+        console.log(`[I]<<ready: ${JSON.stringify(data)}`);
+        const player = Player.findPlayer(data.method, data.pid);
+        if (player != null) {
             player.getRoom().playerReady(player);
         } else {
-            console.error(`[E]ready player doesnt exist, player name = ${data.name}`);
+            console.error(`[W]ready player doesnt exist, player data = ${JSON.stringify(data)}`);
         }
     });
 
-    const playerLeaveRoom = player => {
+    const playerLeaveRoom = (sok, player) => {
         const name = player.getName();
         const room = player.getRoom();
         if (room != null) {
+            sok.leave(room.getId());
             room.playerLeave(player);
             if (room.numPlayers() == 0) {
                 delete allRooms[room.getId()];
@@ -93,98 +91,90 @@ io.on('connection', socket => {
         } else {
             console.error(`[W]player ${name} trying to leave but no room joined`);
         }
-        delete allClients[name];
+        Player.removePlayer(player);
     };
 
-    socket.on('disconnect', (reason) => {
-        console.log(`[I]Client disconnected: ${socket.id}, reason: ${JSON.stringify(reason)}`);
-        const keys = Object.keys(allClients);
-        let removed = 0;
-        let removedPlayer = null;
-        let room = null;
-        for (let i = 0; i < keys.length; i++) {
-            const element = allClients[keys[i]];
-            if (element.getSocketId() == socket.id) {
-                playerLeaveRoom(element);
-                removed ++;
-                removedPlayer = element;
-            }
-        }
-        if (removed != 1) {
-            console.error(`[W]socket disconnected but no players removed, removed = ${removed}`);
+    socket.on('disconnect', reason => {
+        console.log(`[I]<<Client disconnected: ${socket.id}, reason: ${JSON.stringify(reason)}`);
+        const player = Player.findPlayer(socket.loginMethod, socket.pid);
+        if (player == null) {
+            console.error(`[W]socket disconnected but no players removed, player null`);
         } else {
-            console.log(`[I]player ${removedPlayer.getName()} logged off successfully`);
+            playerLeaveRoom(socket, player);
+            console.log(`[I]player ${player.getName()} logged off successfully`);
         }
     });
 
     socket.on(IOTypes.R_LEAVE, data => {
-        console.log(`[I]player request leave: ${data.name}`);
-        if (allClients.hasOwnProperty(data.name)) {
-            playerLeaveRoom(allClients[data.name]);
+        console.log(`[I]<<leave: ${JSON.stringify(data)}`);
+        const player = Player.findPlayer(data.method, data.pid);
+        if (player != null) {
+            playerLeaveRoom(socket, player);
         } else {
-            console.error(`[W]leave player doesnt exist, player name = ${data.name}`);
+            console.error(`[W]leave player doesnt exist, player data = ${JSON.stringify(data)}`);
         }
     });
 
     socket.on(IOTypes.R_CLOSE_RES, data => {
-        console.log(`[I]player closed result panel: ${data.name}`);
-        if (allClients.hasOwnProperty(data.name)) {
-            const room = allClients[data.name].getRoom();
+        console.log(`[I]<<leave: ${JSON.stringify(data)}`);
+        const player = Player.findPlayer(data.method, data.pid);
+        if (player != null) {
+            const room = player.getRoom();
             if (room != null) {
-                room.playerCloseResult(allClients[data.name]);
+                room.playerCloseResult(player);
             } else {
-                console.error(`[W]close res player has no room, player name = ${data.name}`);
+                console.error(`[W]close res player has no room, player data = ${JSON.stringify(data)}`);
             }
         } else {
-            console.error(`[W]close res player doesnt exist, player name = ${data.name}`);
+            console.error(`[W]close res player doesnt exist, player data = ${JSON.stringify(data)}`);
         }
     });
 
     socket.on(IOTypes.R_CHARGE, data => {
-        console.log(`[I]charge: ${data.name}`);
-        if (allClients.hasOwnProperty(data.name)) {
-            const player = allClients[data.name];
+        console.log(`[I]charge: ${JSON.stringify(data)}`);
+        const player = Player.findPlayer(data.method, data.pid);
+        if (player != null) {
             player.setAct(PlayerAction.CHARGE);
         } else {
-            console.error(`[E]ready player doesnt exist, player name = ${data.name}`);
+            console.error(`[E]ready player doesnt exist, player data = ${JSON.stringify(data)}`);
         }
     });
 
     socket.on(IOTypes.R_SHOCK, data => {
-        console.log(`[I]shock: ${data.name}`);
-        if (allClients.hasOwnProperty(data.name)) {
-            const player = allClients[data.name];
+        console.log(`[I]shock: ${JSON.stringify(data)}`);
+        const player = Player.findPlayer(data.method, data.pid);
+        if (player != null) {
             if (player.getData().power >= config.SHOCK_COST) {
                 player.setAct(PlayerAction.SHOCK);
             } else {
                 player.setAct(PlayerAction.BLOCK);
             }
         } else {
-            console.error(`[E]ready player doesnt exist, player name = ${data.name}`);
+            console.error(`[E]ready player doesnt exist, player data = ${JSON.stringify(data)}`);
         }
     });
 
     socket.on(IOTypes.R_BLOCK, data => {
-        console.log(`[I]block: ${data.name}`);
-        if (allClients.hasOwnProperty(data.name)) {
-            const player = allClients[data.name];
+        console.log(`[I]block: ${JSON.stringify(data)}`);
+        const player = Player.findPlayer(data.method, data.pid);
+        if (player != null) {
             player.setAct(PlayerAction.BLOCK);
         } else {
-            console.error(`[E]ready player doesnt exist, player name = ${data.name}`);
+            console.error(`[E]ready player doesnt exist, player data = ${JSON.stringify(data)}`);
         }
     });
 
     socket.on(IOTypes.R_NUKE, data => {
-        console.log(`[I]nuke: ${data.name}`);
-        if (allClients.hasOwnProperty(data.name)) {
-            const player = allClients[data.name];
+        console.log(`[I]nuke: ${JSON.stringify(data)}`);
+        const player = Player.findPlayer(data.method, data.pid);
+        if (player != null) {
             if (player.getData().power >= config.NUKE_COST) {
                 player.setAct(PlayerAction.NUKE);
             } else {
                 player.setAct(PlayerAction.BLOCK);
             }
         } else {
-            console.error(`[E]ready player doesnt exist, player name = ${data.name}`);
+            console.error(`[E]ready player doesnt exist, player data = ${JSON.stringify(data)}`);
         }
     });
 });

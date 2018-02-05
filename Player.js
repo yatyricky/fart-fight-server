@@ -1,23 +1,41 @@
-const {PlayerState, PlayerAction, PlayerFace} = require('./consts');
+const {PlayerState, PlayerAction, PlayerFace, LoginMethod} = require('./consts');
 
-const nameKeeper = {};
+const allPlayers = {};
+const loginMethodKeys = Object.keys(LoginMethod);
+for (let i = 0; i < loginMethodKeys.length; i++) {
+    allPlayers[LoginMethod[loginMethodKeys[i]]] = {};
+}
 
 class Player {
 
-    constructor(name, socketId) {
-        if (nameKeeper.hasOwnProperty(name)) {
-            nameKeeper[name] += 1;
-            name = name + nameKeeper[name];
-        } else {
-            nameKeeper[name] = 0;
-        }
+    constructor(method, pid, name) {
         this.name = name;
         this.power = 1;
         this.act = PlayerAction.NONE;
         this.score = 0;
         this.state = PlayerState.WAIT;
-        this.socketId = socketId;
         this.room = null;
+
+        this.loginMethod = method;
+        this.pid = pid;
+        allPlayers[method][pid] = this;
+    }
+
+    static findPlayer(method, pid) {
+        if (allPlayers.hasOwnProperty(method)) {
+            if (allPlayers[method].hasOwnProperty(pid)) {
+                return allPlayers[method][pid];
+            } else {
+                return null;
+            }
+        } else {
+            return null;
+        }
+    }
+
+    static removePlayer(player) {
+        const playerGroup = allPlayers[player.loginMethod];
+        delete playerGroup[player.pid];
     }
 
     getFace() {
@@ -36,10 +54,6 @@ class Player {
 
     getRoom() {
         return this.room;
-    }
-
-    getSocketId() {
-        return this.socketId;
     }
 
     getName() {
@@ -64,6 +78,8 @@ class Player {
 
     getData() {
         return {
+            loginMethod: this.loginMethod,
+            pid: this.pid,
             name: this.name,
             power: this.power,
             act: this.act,
