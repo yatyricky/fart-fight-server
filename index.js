@@ -23,7 +23,7 @@ io.on('connection', socket => {
         socket.loginMethod = data.method;
         socket.pid = data.pid;
         // player setups
-        const player = new Player(data.method, data.pid, data.name);
+        const player = new Player(data.method, data.pid, data.name, data.avatar);
 
         // room setups
         let room = null;

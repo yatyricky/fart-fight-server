@@ -8,7 +8,7 @@ for (let i = 0; i < loginMethodKeys.length; i++) {
 
 class Player {
 
-    constructor(method, pid, name) {
+    constructor(method, pid, name, avatar) {
         this.name = name;
         this.power = 1;
         this.act = PlayerAction.NONE;
@@ -18,6 +18,7 @@ class Player {
 
         this.loginMethod = method;
         this.pid = pid;
+        this.avatar = avatar;
         allPlayers[method][pid] = this;
     }
 
@@ -81,6 +82,7 @@ class Player {
             loginMethod: this.loginMethod,
             pid: this.pid,
             name: this.name,
+            avatar: this.avatar,
             power: this.power,
             act: this.act,
             face: this.getFace(),
