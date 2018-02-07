@@ -28,7 +28,16 @@ io.on('connection', socket => {
         // room setups
         let room = null;
         if (data.roomId == "") {
-            room = new Room(io);
+            const allRoomKeys = Object.keys(allRooms);
+            for (let i = 0; i < allRoomKeys.length && room == null; i++) {
+                const element = allRooms[allRoomKeys[i]];
+                if (element.canPlayerJoin()) {
+                    room = element;
+                }
+            }
+            if (room == null) {
+                room = new Room(io);
+            }
             allRooms[room.getId()] = room;
         } else {
             if (allRooms.hasOwnProperty(data.roomId)) {
