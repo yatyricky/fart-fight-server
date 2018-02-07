@@ -22,6 +22,15 @@ class Player {
         allPlayers[method][pid] = this;
     }
 
+    static create(method, pid, name, avatar) {
+        let p = Player.findPlayer(method, pid);
+        if (p == null) {
+            return new Player(method, pid, name, avatar);
+        } else {
+            return p;
+        }
+    }
+
     static findPlayer(method, pid) {
         if (allPlayers.hasOwnProperty(method)) {
             if (allPlayers[method].hasOwnProperty(pid)) {
