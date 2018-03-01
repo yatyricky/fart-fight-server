@@ -1,4 +1,5 @@
 const config = require('./config');
+const Logger = require('./Logger');
 const {PlayerState, PlayerAction, PlayerFace, IOTypes} = require('./consts');
 
 let guid = 100;
@@ -31,7 +32,7 @@ class Room {
         if (index != -1) {
             this.players.splice(index, 1);
         } else {
-            console.error(`[E]Removing invalid player: ${JSON.stringify(player.getData())}`);
+            Logger.e(`[E]Removing invalid player: ${JSON.stringify(player.getData())}`);
         }
     }
 
@@ -62,7 +63,7 @@ class Room {
         clearInterval(this.intvObj);
         this.running = true;
         this.intvObj = setInterval(() => {
-            console.log(`[I]times up, start to check stuff`);
+            Logger.i(`[I]times up, start to check stuff`);
             const nukes = [];
             const shocks = [];
             for (let i = 0; i < this.players.length; i++) {
@@ -110,7 +111,7 @@ class Room {
                 this.stopGame(winners[0]);
             } else {
                 this.io.to(this.guid).emit(IOTypes.E_RUN_TIMER);
-                console.log(`[I]>>>>run timer`);
+                Logger.i(`[I]>>>>run timer`);
             }
             this.io.to(this.guid).emit(IOTypes.E_UPDATE_PLAYERS, {data: this.getPlayersData()});
             if (winners.length != 1) {
@@ -140,7 +141,7 @@ class Room {
             element.modPower(1 - element.getData().power);
         }
         this.io.to(this.guid).emit(IOTypes.E_GAME_END, {data: this.getPlayersScore()});
-        console.log(`[I]>>>>game end`);
+        Logger.i(`[I]>>>>game end`);
     }
 
     playerCloseResult(player) {
