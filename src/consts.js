@@ -39,7 +39,8 @@ const IOTypes = {
 const LoginMethod = {
     DEVICE: "dvc",
     GOOGLE_GAMES: "gpg",
-    FACEBOOK: "fb"
+    FACEBOOK: "fb",
+    FB_INSTANT_GAMES: "fbig"
 }
 
 module.exports = {
