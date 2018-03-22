@@ -7,8 +7,8 @@ const Logger = require('./Logger');
 const Room = require('./Room');
 
 const server = https.createServer({
-    key: fs.readFileSync('server.key'),
-    cert: fs.readFileSync('server.crt')
+    key: fs.readFileSync('/etc/letsencrypt/live/g.nefti.me/privkey.pem'),
+    cert: fs.readFileSync('/etc/letsencrypt/live/g.nefti.me/fullchain.pem')
 }).listen(config.PORT, () => {
     Logger.i(`--- server running on ${config.PORT} ---`);
 });
