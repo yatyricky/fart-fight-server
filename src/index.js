@@ -29,55 +29,63 @@ io.on('connection', socket => {
 
     socket.on(IOTypes.R_LOGIN, data => {
         Logger.i(`[I]<<login: ${JSON.stringify(data)}`);
+
         socket.loginMethod = data.method;
         socket.pid = data.pid;
         // player setups
         const player = Player.create(data.method, data.pid, data.name, data.avatar);
-
-        // room setups
-        let room = null;
-        if (data.roomId == "") {
-            const allRoomKeys = Object.keys(allRooms);
-            for (let i = 0; i < allRoomKeys.length && room == null; i++) {
-                const element = allRooms[allRoomKeys[i]];
-                if (element.canPlayerJoin()) {
-                    room = element;
+        if (player != null) {
+            // room setups
+            let room = null;
+            if (data.roomId == "") {
+                const allRoomKeys = Object.keys(allRooms);
+                for (let i = 0; i < allRoomKeys.length && room == null; i++) {
+                    const element = allRooms[allRoomKeys[i]];
+                    if (element.canPlayerJoin()) {
+                        room = element;
+                    }
+                }
+                if (room == null) {
+                    room = new Room(io);
+                }
+                allRooms[room.getId()] = room;
+            } else {
+                if (allRooms.hasOwnProperty(data.roomId)) {
+                    room = allRooms[data.roomId];
                 }
             }
-            if (room == null) {
-                room = new Room(io);
-            }
-            allRooms[room.getId()] = room;
-        } else {
-            if (allRooms.hasOwnProperty(data.roomId)) {
-                room = allRooms[data.roomId];
-            }
-        }
-
-        if (room != null) {
-            if (room.canPlayerJoin()) {
-                socket.join(room.getId());
-                room.playerJoin(player);
-                io.to(room.getId()).emit(IOTypes.E_UPDATE_PLAYERS, { data: room.getPlayersData() });
-                Logger.i(`[I]>>>>update players`);
-                socket.emit(IOTypes.E_LOGIN_RESULT, {
-                    res: 'success',
-                    roomId: room.getId()
-                });
-                Logger.i(`[I]>>Login successful, player ${player.getData().name} joined room ${room.getId()}`);
+    
+            if (room != null) {
+                if (room.canPlayerJoin()) {
+                    socket.join(room.getId());
+                    room.playerJoin(player);
+                    io.to(room.getId()).emit(IOTypes.E_UPDATE_PLAYERS, { data: room.getPlayersData() });
+                    Logger.i(`[I]>>>>update players`);
+                    socket.emit(IOTypes.E_LOGIN_RESULT, {
+                        res: 'success',
+                        roomId: room.getId()
+                    });
+                    Logger.i(`[I]>>Login successful, player ${player.getData().name} joined room ${room.getId()}`);
+                } else {
+                    socket.emit(IOTypes.E_LOGIN_RESULT, {
+                        res: 'fail',
+                        reason: 'room is full'
+                    });
+                    Logger.i(`[I]>>Login failed, room is full`);
+                }
             } else {
                 socket.emit(IOTypes.E_LOGIN_RESULT, {
                     res: 'fail',
-                    reason: 'room is full'
+                    reason: 'no such room'
                 });
-                Logger.i(`[I]>>Login failed, room is full`);
+                Logger.i(`[I]>>Login failed, no such room ${data.roomId} or new Room failed`);
             }
         } else {
             socket.emit(IOTypes.E_LOGIN_RESULT, {
                 res: 'fail',
-                reason: 'no such room'
+                reason: 'bad player'
             });
-            Logger.i(`[I]>>Login failed, no such room ${data.roomId} or new Room failed`);
+            Logger.i(`[I]>>Login failed, create player failed`);
         }
     });
 

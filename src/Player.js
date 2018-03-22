@@ -23,11 +23,16 @@ class Player {
     }
 
     static create(method, pid, name, avatar) {
+        if (pid == "" || method == "") {
+            // just in case
+            return null;
+        }
         let p = Player.findPlayer(method, pid);
         if (p == null) {
             return new Player(method, pid, name, avatar);
         } else {
-            return p;
+            // sorry, no same player allowed
+            return null;
         }
     }
 
@@ -39,7 +44,7 @@ class Player {
                 return null;
             }
         } else {
-            return null;
+            return 1;
         }
     }
 
