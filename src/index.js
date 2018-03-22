@@ -1,13 +1,21 @@
 const config = require('./config');
-const {PlayerAction, IOTypes} = require('./consts');
+const fs = require('fs');
+const https = require('https')
+const { PlayerAction, IOTypes } = require('./consts');
 const Player = require('./Player');
 const Logger = require('./Logger');
 const Room = require('./Room');
 
-const io = require('socket.io')(config.PORT, {
+const server = https.createServer({
+    key: fs.readFileSync('server.key'),
+    cert: fs.readFileSync('server.crt')
+}).listen(config.PORT, () => {
+    Logger.i(`--- server running on ${config.PORT} ---`);
+});
+
+const io = require('socket.io')(server, {
     transports: ['websocket']
 });
-Logger.i(`--- server running on ${config.PORT} ---`);
 
 const allRooms = {};
 
@@ -50,7 +58,7 @@ io.on('connection', socket => {
             if (room.canPlayerJoin()) {
                 socket.join(room.getId());
                 room.playerJoin(player);
-                io.to(room.getId()).emit(IOTypes.E_UPDATE_PLAYERS, {data: room.getPlayersData()});
+                io.to(room.getId()).emit(IOTypes.E_UPDATE_PLAYERS, { data: room.getPlayersData() });
                 Logger.i(`[I]>>>>update players`);
                 socket.emit(IOTypes.E_LOGIN_RESULT, {
                     res: 'success',
@@ -92,7 +100,7 @@ io.on('connection', socket => {
             if (room.numPlayers() == 0) {
                 delete allRooms[room.getId()];
             } else {
-                io.to(room.getId()).emit(IOTypes.E_UPDATE_PLAYERS, {data: room.getPlayersData()});
+                io.to(room.getId()).emit(IOTypes.E_UPDATE_PLAYERS, { data: room.getPlayersData() });
                 if (room.numPlayers() == 1) {
                     room.stopGame(null);
                 }
