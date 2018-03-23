@@ -140,7 +140,14 @@ class Room {
             const element = this.players[i];
             element.modPower(1 - element.getData().power);
         }
-        this.io.to(this.guid).emit(IOTypes.E_GAME_END, {data: this.getPlayersScore()});
+        const winnerData = winner.getData();
+        this.io.to(this.guid).emit(IOTypes.E_GAME_END, {
+            data: this.getPlayersScore(),
+            winner: {
+                loginMethod: winnerData.loginMethod,
+                pid: winnerData.pid
+            }
+        });
         Logger.i(`[I]>>>>game end`);
     }
 
