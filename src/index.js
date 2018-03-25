@@ -27,6 +27,14 @@ io.on('connection', socket => {
     socket.emit(IOTypes.E_LINK_ESTABLISHED);
     Logger.i(`[I]>>Link established`);
 
+    socket.on('logi', data => {
+        console.log(`[CLOGI]${JSON.stringify(data.data)}`);
+    });
+
+    socket.on('loge', data => {
+        console.log(`[CLOGE]${JSON.stringify(data.data)}`);
+    });
+
     socket.on(IOTypes.R_LOGIN, data => {
         Logger.i(`[I]<<login: ${JSON.stringify(data)}`);
 
