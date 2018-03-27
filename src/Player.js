@@ -44,7 +44,7 @@ class Player {
                 return null;
             }
         } else {
-            return 1;
+            return null;
         }
     }
 
