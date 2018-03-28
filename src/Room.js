@@ -3,15 +3,48 @@ const Logger = require('./Logger');
 const {PlayerState, PlayerAction, PlayerFace, IOTypes} = require('./consts');
 
 let guid = 100;
+const allRooms = {};
 
 class Room {
 
-    constructor(io) {
-        this.guid = guid++;
+    constructor(io, id) {
+        this.guid = id;
         this.io = io;
         this.players = [];
         this.running = false;
         this.intvObj = null;
+
+        allRooms[id] = this;
+    }
+
+    static create(io, id) {
+        let room = null;
+        if (id == "") {
+            const allRoomKeys = Object.keys(allRooms);
+            for (let i = 0; i < allRoomKeys.length && room == null; i++) {
+                const element = allRooms[allRoomKeys[i]];
+                if (element.canPlayerJoin()) {
+                    room = element;
+                }
+            }
+            if (room == null) {
+                do {
+                    guid++;
+                } while (allRooms.hasOwnProperty(guid) == true);
+                room = new Room(io, guid);
+            }
+        } else {
+            if (allRooms.hasOwnProperty(id)) {
+                room = allRooms[id];
+            } else {
+                room = new Room(io, id);
+            }
+        }
+        return room;
+    }
+
+    static destroy(room) {
+        delete allRooms[room.getId()];
     }
 
     getId() {
