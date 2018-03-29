@@ -70,26 +70,28 @@ class Room {
     }
 
     playerReady(player) {
-        player.setState(PlayerState.READY);
-
-        const resps = [];
-        let allGood = true;
-        for (let i = 0; i < this.players.length && allGood == true; i++) {
-            const element = this.players[i];
-            if (element.getData().state != PlayerState.READY) {
-                allGood = false;
-            }
-        }
-
-        if (allGood == true && this.players.length > 1 && this.running == false) {
-            for (let i = 0; i < this.players.length; i++) {
+        if (player.getData().state == PlayerState.WAIT) {
+            player.setState(PlayerState.READY);
+    
+            const resps = [];
+            let allGood = true;
+            for (let i = 0; i < this.players.length && allGood == true; i++) {
                 const element = this.players[i];
-                element.setState(PlayerState.GAME);
-                element.setAct(PlayerAction.NONE);
+                if (element.getData().state != PlayerState.READY) {
+                    allGood = false;
+                }
             }
-            this.startGame();
+    
+            if (allGood == true && this.players.length > 1 && this.running == false) {
+                for (let i = 0; i < this.players.length; i++) {
+                    const element = this.players[i];
+                    element.setState(PlayerState.GAME);
+                    element.setAct(PlayerAction.NONE);
+                }
+                this.startGame();
+            }
+            this.io.to(this.guid).emit(IOTypes.E_UPDATE_PLAYERS, {data: this.getPlayersData()});
         }
-        this.io.to(this.guid).emit(IOTypes.E_UPDATE_PLAYERS, {data: this.getPlayersData()});
     }
 
     startGame() {
