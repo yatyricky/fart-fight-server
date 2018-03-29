@@ -32,6 +32,7 @@ const IOTypes = {
     E_LINK_ESTABLISHED: "link established",
     E_UPDATE_PLAYERS: "update players",
     E_LOGIN_RESULT: "login result",
+    E_PLAYER_LEFT: "player left",
     E_RUN_TIMER: "run timer",
     E_GAME_END: "game end",
 };
