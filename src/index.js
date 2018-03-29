@@ -93,7 +93,7 @@ io.on('connection', socket => {
                     room.stopGame(null);
                 }
             }
-            sok.eimt(IOTypes.E_PLAYER_LEFT, {
+            sok.emit(IOTypes.E_PLAYER_LEFT, {
                 resp: 'success'
             });
             Logger.i(`[I]player ${name} left room successfully`);
